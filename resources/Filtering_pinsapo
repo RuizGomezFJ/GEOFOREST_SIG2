@@ -1,0 +1,12 @@
+library(readxl) #para leer excel
+library(dplyr) #para tratar datos
+
+datos <- read_excel(path = "Inventario_Pinaryunquera.xlsx", sheet = 1)
+coordenadas <- read_excel(path = "Inventario_Pinaryunquera.xlsx", sheet = 2)
+
+pinsapo <- datos %>% filter(NOMBRE_CIENTIFICO == "Abies pinsapo") %>%
+  group_by(PARCELA) %>% summarize(Nparc = sum(N_ha))
+
+pinsapo <- merge(pinsapo, coordenadas, by= "PARCELA")
+
+write.csv(pinsapo, file = "inventario_pinsapo.csv", row.names = FALSE)
