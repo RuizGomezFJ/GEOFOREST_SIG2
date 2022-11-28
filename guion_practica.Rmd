@@ -1,0 +1,202 @@
+---
+title: 'Guión de la práctica 1: Optimización de la división inventarial para el manejo
+  y conservación de ecosistemas'
+output:
+  pdf_document:
+    toc: yes
+  html_document:
+    toc: yes
+    toc_loc: left
+    toc_float: yes
+    toc-depth: 2
+    code_folding: show
+    theme: cerulean
+---
+
+> -   ***Versión***: v.2022-2023
+> -   ***Asignatura (titulación)***: Sistemas de Información Geográfica y Ecología Espacial (Máster GEOFOREST)
+> -   ***Autores***: Francisco José Ruiz Gómez ([g72rugof\@uco.es](mailto:g72rugof@uco.es){.email}) y Mari Ángeles Varo Martinez ([mavaro\@uco.es](mailto:mavaro@uco.es){.email})
+> -   ***Duración***: 3 horas.
+
+#### Objetivo:
+
+Desarrollar una aplicación práctica de segmentación del territorio con la herramienta QGis basada en la aplicación de algortimos de optimización multiobjetivo.
+
+#### Instrucciones para la Práctica:
+
+a)  Lea detenidamente toda la guía\
+b)  Verifique que cuenta con los elementos de hardware, software, red e inputs necesarios.
+c)  Descargue toda la información necesaria para la práctica (ver presentación 2)
+d)  Identifique y complete la información que se le solicita
+e)  Utilice el material como se lo indica el profesor
+f)  Al concluir el ejercicio participe en la socialización de las diferentes respuestas expuestas
+
+#### Materiales:
+
+| DESCRIPCIÓN               | NOMBRE Y LOCALIZACION                                                                          |
+|---------------------------------|---------------------------------------|
+| Guión de la práctica      | UDII_P1_GUIA.pdf / Moodle                                                                      |
+| Datos suministrados       | Focos_heterobasidium.tiff / Moodle <br> Andalucia_Provincias.rar / Moodle<br> Inventario_pinar |
+| Datos disponibles On-Line | Varios / Revisar Presentación 2                                                                |
+
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+## Introducción:
+<a name="inicio"></a>
+En la presente práctica calcularemos, manipularemos y representaremos diferentes tipos de capas, para obtener un raster virtual que servirá de base para realizar la segmentación del territorio en base a factores ecológicos como la presencia de la especie, la presencia de daños por patógenos, y las zonas más favorables para la especie (caucas, exposición y altitud, ) y otros factores asociados a la logística y al manejo de la especie, como la distancia a caminos, o la pendiente.
+
+## Desarrollo de la práctica:
+
+El alumno debe haber seguido los pasos de la [Presentación 2](https://github.com/RuizGomezFJ/GEOFOREST_SIG2/blob/46ce13fa40785c6ba8a0c88eed26255ea353731d/resources/UD2_PPT2.pdf) y haber descargado las capas de información necesarias.
+
+### [Cargar capas en QGIS:]{.underline}
+
+-   Capa de límites del monte:
+    -   No podemos partir del KML utilizado para descargar el MDT del PNOA porque lo guardamos en un SRC de coordenadas geográficas (WGS86). Hay que descargar y cortar los límites del monte según indica la Presentación 2 y a continuación epxortarlos del siguiente modo:
+        -   Seleccionar la entidad correspondiente en la tabla de atributos
+        -   En el menú "Edición", copiar objetos seleccionados y pegar como nueva capa vectorial
+        -   Guardar los límites de la propiedad en formato SHP. Comprobar el SRC.
+    -   La capa de limites contiene dos geometrías, pero solo necesitamos la correspondiente al Tramo II (la grande situada al sur) [(Fig. 1)](#figura1). Eliminaremos la geometría superior con la herramienta "Borrar parte" del menú "edición", activando antes la edición de la capa.
+
+<p align="center">
+<img src="https://github.com/RuizGomezFJ/GEOFOREST_SIG2/blob/main/Imagenes/Elementos_pinar.jpg?raw=true" alt="Figura 1" style="zoom:30%;"/><a name="figura1"></a><br><br> **Figura 1**
+</p>
+
+-   Capa de puntos de presnecia de pinsapo
+    -   Cargar el CSV con el Administrador de Fuentes de Datos [(Fig. 2)](#figura2)
+    -   Exportar el archivo
+
+<p align="center">
+<img src="https://github.com/RuizGomezFJ/GEOFOREST_SIG2/blob/main/Imagenes/cargar_csv.jpg?raw=true" alt="Figura 2" style="zoom:60%;"/><a name="figura2"></a><br><br> **Figura 2**
+</p>
+
+-   Recorte de capas de información por los límites de la zona de estudio:
+    -   <u>Modelo digital de elevaciones:</u> Cortar con la herramienta de GDAL, "cortar raster por capa de máscara", del cajón de herramientas de procesos, utilizando las siguientes opciones [(Fig. 3)](#figura3):
+
+<p align="center">
+<img src="https://github.com/RuizGomezFJ/GEOFOREST_SIG2/blob/main/Imagenes/recorte_MDT.jpg?raw=true" alt="Figura 3" style="zoom:90%;"/><a name="figura3"></a><br><br> **Figura 3**
+</p>
+
+Si el proceso da error, habrá que comprobar la geometría de los límites del terreno. La opción más probable es que haya una intersección entre algunos puntos del contorno
+
+-   <u>Capa de vías:</u>
+    -   Añadir desde la carpeta descargada del DERA (IECA) tantas capas como sean necesarias (las que tengan presencia en el interior de los limites del monte) al proyecto de QGis
+    -   Preseleccionar los elementos de una de las dos capa de forma manual, con la herramienta "Seleccionar por localización": Menú "Vectorial"\>"Herramientas de Investigación", utilizando la capa de los límites del monte. Copiar la selección y pegarla como nueva capa vectorial temporal (herramientas del menú "Edición")
+    -   Repetir el proceso con la segunda capa, pero en lugar de pegar las geometrías en una nueva capa vectorial, realizar el pegado en la capa vectorial temporal creada anteriormente.
+    -   Recortar con la herramienta de GDAL "Cortar vectorial por capa de máscara"
+-   <u>Capa de puntos de inventario y de presencia de *Heterobasidium*</u>:
+    -   Estas capas se recortarán cuando las tengamos en formato Raster, tras el cálculo del raster de distancias y la interpolación, siguiendo el mismo procedimiento que para el recorte del MDE [(Fig. 3)](#figura3).
+
+### [Preparación del entorno:]{.underline}
+
+En este paso vamos a manipular y preparar las capas de información vectorial necesarias para crear posteriormente los archivos raster que usaremos en la segmentación.
+
+-   <u>Capa de cauces</u>:
+    -   De entre las capas vectoriales de hidrología descargadas del IECA, deberíamos cargar en nuestro proyecto las capas correspondientes a cursos de agua (*03_01_Rio.shp*).
+    -   Después utilizaremos la herramienta *Cortar vectorial por capa de máscara* para quedarnos unicamente con los cauces que pasen por nuestra zona de trabajo
+-   En nuestro caso, vamos a necesitar los cauces secundarios y los canales de drenaje, pues serán áreas hidrológicamente favorables para el pinsapo por la humedad. Esta capa la debemos obtener a partir del MDT, por lo que si no encontramos otros cursos de agua artificiales, utilizaremos solo la capa de canales extraida del siguiente modo:<br>
+    -   Realizar un *recorte por extensión* del MDT para la zona de trabajo. EL recorte por capa de máscara nos daría error debido al hueco del raster que se produce en el contorno.
+    -   Utilizando la herramienta de SAGA *Red de canales y cuencas de drenaje* [(Fig. 4)](#figura4), extraemos los canales con los parámetros por defecto.
+    -   Recortamos los canales al área de trabajo a través de la herramienta *Cortar vectorial por capa de máscara*
+
+<p align="center">
+<img src="https://github.com/RuizGomezFJ/GEOFOREST_SIG2/blob/main/Imagenes/red_canales.jpg?raw=true" alt="Figura 4" style="zoom:90%;"/><a name="figura4"></a><br><br> **Figura 4**
+</p>
+
+Tras establecer el SRC adecuado y hacer la capa permanete (guardarla en el disco duro), realizaremos un recorte de la capa quedándonos únicamente con las entidades y partes de entidades que se encuentren dentro de los límites de la zona de trabajo, a través de la herramienta de GDAL *Cortar vectorial por capa de máscara*.
+
+Finalmente añadiremos mediante la calculadora de campos, un campo o columna en la tabla de atributos que denominaremos CAUCE y cuyo valor será 1 para todas las entidades. Este campo lo utilizaremos después para la rasterización.
+
+-   <u>Capa de caminos</u>:
+    -   Añadiremos al proyecto todas las capas de la carpeta \*Transportes y comunicaciones" que nos descargamos del DERA (IECA).
+    -   A continuación recortaremos las capas vectoriales una a una, utilizando los límites de la zona de trabajo-
+    -   Finalmente uniremos las diferentes capas resultantes seleccionando las entidades y utilizando las opciones *copiar* y *pegar* del menú edición.
+    -   También le añadiremos con la calculadora de campos un campo llamado CAMINOS que utilizaremos para el rasterizado posterior.
+-   <u> Capa de focos de *Heterobasidium*</u>:
+    -   En esta capa unicamente tenemos que añadir el atributo FOCOS mediante la calculadora de campos, para luego usarlo en la rasterización. Le daremos el valor 1.
+
+### [Preparación de capas raster:]{.underline}
+
+A continuación vamos a crear y preparar los raster que posteriormente utilizaremos para generar el raster virtual. Todos los raster deben tener la misma resolución, que será de 10 x 10 m.
+
+#### Capas raster de distancias a elementos
+
+-   <u>Raster de proximidad a zonas de drenaje</u>:
+    -   En primer lugar rasterizaremos la capa vectorial de canales de drenaje, mediante la herramienta *Raster -\> conversión -\> rasterizar*, utilizando el campo CAUCE [(Figura 5,a)](#figura5).
+    -   Posteriormente, calcularemos el raster de proximidad con la herramienta de GDAL [(Figura 5,b)](#figura5). Atención: No usar *Proximity buffer* pues el proceso es demasiado lento y bloqueará el equipo.
+    -   Indicamos el SRC de la capa y recortamos el resultado por los límites de la zona de trabajo.
+
+<p align="center">
+<img src="https://github.com/RuizGomezFJ/GEOFOREST_SIG2/blob/main/Imagenes/Figura5.jpg?raw=true" alt="Figura 5" style="zoom:90%;"/><a name="figura5"></a><br><br> **Figura 5**
+</p>
+
+-   <u>Raster de proximidad a caminos</u>:
+
+-   Repetir los pasos realizados para el raster de proximidad a zonas de drenaje, con el archivo vectorial de caminos y senderos.
+
+-   Usaremos el atributo CAMINOS para la rasterización.
+
+-   <u>Raster de distancia a focos de *Heterobasidium*</u>:
+
+    -   Repetir los pasos realizados anteriormente, con el archivo vectorial de focos de *Heterobasidium.*
+    -   Usaremos el atributo FOCOS para la rasterización.
+
+> ~*Nota*:\ Si\ en\ alguna\ ocasión\ la\ herramienta\ de\ rasterización\ por\ defecto\ falla,\n probar\ con\ la\ herramienta\ *Feature\ to\ raster*\ de\ SAGA.~
+
+#### Capas raster de variables distribuidas
+
+-   <u>Raster de relieve (exposición)</u>:
+    -   Utilizaremos el MDT recortado para calcular la exposición mediante la herramienta *Raster -\> Analisis -\> aspecto*.
+
+-   <u>Raster de presencia (densidad) de pinsapo</u>:
+    -   Para realizar el raster de densidad de pinsapo utilizarermos la interpolación inversa a la distancia (IWD) de GDAL, con las opciones que se observan en la [Figura 6](#figura6).
+    -   Después cortaremos el raster por capa de máscara utilizando los límites del área de trabajo.
+
+<p align="center">
+<img src="https://github.com/RuizGomezFJ/GEOFOREST_SIG2/blob/main/Imagenes/IWD_options.jpg?raw=true" alt="Figura 6" style="zoom:90%;"/><a name="figura6"></a><br><br> **Figura 6**
+</p>
+
+-   Finalmente reclasificaremos el raster utilizando la herramienta *r.reclass* de GRASS [(Figura 6)](#figura6), con las siguientes reglas de reclasificación:
+
+|    INTERVALO     | NUEVO VALOR |
+|:----------------:|:-----------:|
+|  0 thru 49.999   |      0      |
+| 50 thru 199.999  |     100     |
+| 200 thru 399.999 |     300     |
+| 400 thru 599.999 |     500     |
+| 600 thru 799.999 |     700     |
+|  800 thru 1000   |     900     |
+
+### [Raster virtual:]{.underline}
+
+En el siguiente paso uniremos los raster en un raster virtual utilizando la herramienta disponible en el menú *Raster -> miscelanea -> construir raster virtual* [(Figura 79](#figura7) .
+
+
+<p align="center">
+<img src="https://github.com/RuizGomezFJ/GEOFOREST_SIG2/blob/main/Imagenes/raster_virtual.jpg?raw=true" alt="Figura 7" style="zoom:90%;"/><a name="figura7"></a><br><br> **Figura 7**
+</p>
+
+### [Segmentación:]{.underline}
+
+El último paso de la práctica consiste en realizar la segmemtación con la herramienta de Orfeo, localizada en l aventana de herramientas, en el desblegable *OTB -> Segmentation -> Segmentation*. Utilizaremos un radio espacial de 10 m (el tamaño del pixel) y un numero de pixeles mínimo de 1000 para no tener segmentos demasiado pequeños [(Figura 8)](#figura8):
+
+<p align="center">
+<img src="https://github.com/RuizGomezFJ/GEOFOREST_SIG2/blob/main/Imagenes/orfeo.jpg?raw=true" alt="Figura 8" style="zoom:90%;"/><a name="figura8"></a><br><br> **Figura 8**
+</p>
+
+Se recomienda a los alumnos probar a realizar diferentes raster virtuales cambiando las capas de entrada y comprobar la diferencia entre los resultados.
+
+## Resultado de la práctica
+
+El resultado que obtendremos de la segmentación hay que transformarlo en capa vectorial para visualizarlo correctamente y comprobar las unidades sobre el terreno.
+
+<p align="center">
+<img src="https://github.com/RuizGomezFJ/GEOFOREST_SIG2/blob/main/Imagenes/resultado_v.jpg?raw=true" alt="Figura 9" style="zoom:90%;"/><a name="figura9"></a><br><br> **Figura 9**
+</p>
+
+Como se puede observar en la [Figura 9](#figura9), la delimitación de los cantones presenta unos bordes irregulares, pero las estructuras tienen una buena correspondencia con la distribución y las diferencias de la masa, así como con las diferencias en la exposición de las laderas, o la densidad de pinsapo. A partir de esta segmentación, un técnico podría refinar las unidades, dándole a la división inventarial del monte un sentido más ecológico, en el que las unidades de gestión se definan en mayor medida por las características ecológicas de la zona respecto al pinsapo.
+
+
+[VOLVER](#inicio)
